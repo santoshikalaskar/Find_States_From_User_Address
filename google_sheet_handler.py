@@ -57,9 +57,10 @@ class Google_sheet_handler:
             logger.error(" Updating google sheet " + excepName)
             return excepName
 
-    # def save_output_into_sheet_by_condition(self, worksheet, df_list):
-    #     print(df_list.columns)
-    #     for itr, item in df_list.iterrows():
-    #         state_names = self.get_State_Name_From_Test_Location(item[test_column_name])
+    def Update_cell_value(self, google_sheet, final_df, compare_column_name, update_column_name):
+        for itr, item in final_df.iterrows():
+            timestamps_cell = google_sheet.find(item[compare_column_name])
+            print(item[compare_column_name], timestamps_cell.row, timestamps_cell.col)
+            google_sheet.update_cell(timestamps_cell.row, timestamps_cell.col + 5, item[update_column_name])
 
 logger = logger_hander.set_logger()
