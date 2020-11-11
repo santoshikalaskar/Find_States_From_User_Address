@@ -11,19 +11,19 @@ class Find_State_Location:
         self.Global_Dict = {}
         self.Global_Dict_keys_lower = {}
         self.Global_Dict_path = 'dataset/Area_Location.csv'
-        self.Generate_Gobal_Dict()
+        self.generate_Gobal_Dict()
 
-    def Generate_Gobal_Dict(self):
+    def generate_Gobal_Dict(self):
         df = pd.read_csv(self.Global_Dict_path)
         for col in df.columns:
-            State_Key_Name, State_Key_Value = self.preprocess_columns(df, col)
+            State_Key_Name, State_Key_Value = self.preProcess_Columns(df, col)
             self.Global_Dict[State_Key_Name] = State_Key_Value
         Global_Dict_keys = self.Global_Dict.keys()
         self.Global_Dict_keys_lower = [key.lower() for key in Global_Dict_keys]
         self.Global_Dict_keys_lower = [key.replace('_', ' ') for key in self.Global_Dict_keys_lower]
-        print("Global Dict get Created")
+        logger.info(" Global Dictionary got Created...!")
 
-    def fetch_data(self, google_sheet, start_date, end_date):
+    def fetch_Data_From_Sheet(self, google_sheet, start_date, end_date):
         list_of_records = google_sheet.get_all_records()
         Email_id_list = []
         Name_list = []
@@ -48,15 +48,15 @@ class Find_State_Location:
         logger.info("Data fetched from existing sheet Successfully..!")
         return Timestamp_list, Date_List, Email_id_list, Name_list, MobileNumber_list, University_list, FinalUniversity_list, CurrentLocation_list, PermanentLocation_list
 
-    def check_cell_name_valid_or_not(self, sheet, List_cell_name):
+    def check_Cell_Name_Valid_or_Not(self, sheet, List_cell_name):
         return Google_sheet_handler.find_cell(self, sheet, List_cell_name)
 
-    def extract_data_and_return_dataframe(self, sheet,start_date,end_date):
+    def convert_Final_University(self, sheet,start_date,end_date):
         List_of_cell_name = ['Timestamp', 'Email Address', 'Name', 'Mobile Number', 'University','College and University','Your current location?','Permanent Residence Location']
 
-        flag = self.check_cell_name_valid_or_not(sheet, List_of_cell_name)
+        flag = self.check_Cell_Name_Valid_or_Not(sheet, List_of_cell_name)
         if flag:
-            Timestamp_list, Date_List, Email_id_list, Name_list, MobileNumber_list, University_list, FinalUniversity_list, CurrentLocation_list, PermanentLocation_list = self.fetch_data(sheet, start_date, end_date)
+            Timestamp_list, Date_List, Email_id_list, Name_list, MobileNumber_list, University_list, FinalUniversity_list, CurrentLocation_list, PermanentLocation_list = self.fetch_Data_From_Sheet(sheet, start_date, end_date)
             for itr, final_uni in enumerate(FinalUniversity_list):
                 final_uni = final_uni.lower()
                 if ('na' in final_uni) or ('no' in final_uni) or ('nill' in final_uni) or ('n/a' in final_uni):
@@ -66,20 +66,20 @@ class Find_State_Location:
 
             return Timestamp_list, Date_List, Email_id_list, Name_list, MobileNumber_list, University_list, CurrentLocation_list, PermanentLocation_list
 
-    def preprocess_columns(self, Dataframe, column_name):
+    def preProcess_Columns(self, Dataframe, column_name):
         Dataframe[column_name] = Dataframe[column_name].str.lower()
         State_Key_Name = column_name.split('_SUB-DISTRICT')[0]
         State_Key_Value = Dataframe[column_name].dropna().unique().tolist()
         return State_Key_Name, State_Key_Value
 
-    def get_state_name_from_dict(self,Search_State_name):
+    def get_State_Name_From_Dict(self,Search_State_name):
         for State_name_key, State_name_values in self.Global_Dict.items():
             for State_list_value in State_name_values:
                 if Search_State_name == State_list_value:
                     return State_name_key
         return "State_not_found"
 
-    def preprocessTestLocation(self,test_df,column_name):
+    def preProcess_Test_Location(self,test_df,column_name):
         test_df[column_name] = test_df[column_name].str.lower()
         test_df[column_name] = test_df[column_name].str.replace('[#,@,&,(,),.,/,;]', ' ').dropna()
         test_df[column_name] = test_df[column_name].str.replace(',', ' ')
@@ -88,20 +88,19 @@ class Find_State_Location:
         state_loc_list = []
         test_location = str(test_location).strip()
         if test_location in self.Global_Dict_keys_lower:
-            state_name = self.get_state_name_from_dict(test_location)
+            state_name = self.get_State_Name_From_Dict(test_location)
             return state_name
         for token in test_location.split():
             token = ''.join(e.lower() for e in token if e.isalnum())
             token = token.strip()
-            state = self.get_state_name_from_dict(token)
+            state = self.get_State_Name_From_Dict(token)
             state_loc_list.append(state)
         return ' '.join(state_loc_list)
 
-    def final_output(self,test_location_df, test_column_name):
+    def find_State_From_Address(self,test_location_df, test_column_name):
         count = 0
         state_name_list = []
         State_df = []
-
         for _, item in test_location_df.iterrows():
             state_names = self.get_State_Name_From_Test_Location(item[test_column_name])
             if "State_not_found" in state_names:
@@ -123,38 +122,10 @@ class Find_State_Location:
                 else:
                     State_df.append(state_names.replace('_',' '))
         test_column_name = test_column_name + ' State'
-        print("---------Count of State Not found Records...", count)
+        print("From ",test_column_name,"--",count," Records Not Found..!")
         return State_df, test_column_name
 
-    def get_date(self):
-        start_date = '10/30/2020'
-        end_date = '10/31/2020'
-        Timestamp_list, Date_List, Email_id_list, Name_list, MobileNumber_list, University_list, CurrentLocation_list, PermanentLocation_list = Find_State_Obj.extract_data_and_return_dataframe(
-            sheet, start_date, end_date)
-        dict = {'Timestamp': Timestamp_list, 'Date': Date_List, 'Email Address': Email_id_list, 'Name': Name_list,
-                'Mobile Number': MobileNumber_list,
-                'Final University Name': University_list,
-                'Current Location': CurrentLocation_list,
-                'Permanent Address': PermanentLocation_list}
-        State_dataframe = pd.DataFrame(dict)
-        Find_State_Obj.preprocessTestLocation(State_dataframe, 'Current Location')
-        Current_State_df, Current_test_column_name = Find_State_Obj.final_output(State_dataframe, 'Current Location')
-        Find_State_Obj.preprocessTestLocation(State_dataframe, 'Permanent Address')
-        Permanent_State_df, Permanent_test_column_name = Find_State_Obj.final_output(State_dataframe,
-                                                                                     'Permanent Address')
-        University_state_list = self.univerity_data(University_list)
-        dict = {'Timestamp': Timestamp_list, 'Email Address': Email_id_list, 'Name': Name_list,
-                'Mobile Number': MobileNumber_list,
-                'Final University Name': University_list,
-                'University State': University_state_list,
-                'Current Location': CurrentLocation_list,
-                Current_test_column_name: Current_State_df,
-                'Permanent Address': PermanentLocation_list,
-                Permanent_test_column_name: Permanent_State_df}
-        final_df = pd.DataFrame(dict)
-        return final_df
-
-    def univerity_data(self,final_university_name_list):
+    def find_Univerity_State(self,final_university_name_list):
         final_list =[]
         for Uni_vals in final_university_name_list:
             if str(Uni_vals) != 'nan':
@@ -189,13 +160,49 @@ class Find_State_Location:
                 final_list.append('')
         return final_list
 
+    def Main_Controller(self):
+        start_date = '10/30/2020'
+        end_date = '10/31/2020'
+        Timestamp_list, Date_List, Email_id_list, Name_list, MobileNumber_list, University_list, CurrentLocation_list, PermanentLocation_list = \
+            Find_State_Obj.convert_Final_University(sheet, start_date, end_date)
+        dict = {'Timestamp': Timestamp_list,
+                'Date': Date_List,
+                'Email Address': Email_id_list,
+                'Name': Name_list,
+                'Mobile Number': MobileNumber_list,
+                'Final University Name': University_list,
+                'Current Location': CurrentLocation_list,
+                'Permanent Address': PermanentLocation_list }
+        State_dataframe = pd.DataFrame(dict)
+        print("Total No of fetched Records: ",State_dataframe.shape)
+
+        Find_State_Obj.preProcess_Test_Location(State_dataframe, 'Current Location')
+        Current_State_df, Current_test_column_name = Find_State_Obj.find_State_From_Address(State_dataframe, 'Current Location')
+        Find_State_Obj.preProcess_Test_Location(State_dataframe, 'Permanent Address')
+        Permanent_State_df, Permanent_test_column_name = Find_State_Obj.find_State_From_Address(State_dataframe,'Permanent Address')
+        logger.info("From Address find States Successfully..!")
+        University_state_list = self.find_Univerity_State(University_list)
+        logger.info("From University find States Successfully..!")
+        dict = {'Timestamp': Timestamp_list,
+                'Email Address': Email_id_list,
+                'Name': Name_list,
+                'Mobile Number': MobileNumber_list,
+                'Final University Name': University_list,
+                'University State': University_state_list,
+                'Current Location': CurrentLocation_list,
+                Current_test_column_name: Current_State_df,
+                'Permanent Address': PermanentLocation_list,
+                Permanent_test_column_name: Permanent_State_df}
+        final_dataframe = pd.DataFrame(dict)
+        return final_dataframe
+
 if __name__ == "__main__":
-    Find_State_Obj = Find_State_Location()
     sheet_handler = Google_sheet_handler()
     logger = logger_hander.set_logger()
+    Find_State_Obj = Find_State_Location()
     sheet = sheet_handler.call_sheet("CodInClub Student Information_Till_Oct_2020", "Learners_Data")
     if sheet != 'WorksheetNotFound':
-        final_df = Find_State_Obj.get_date()
+        final_df = Find_State_Obj.Main_Controller()
         df_list_value = final_df.values.tolist()
         Output_sheet = sheet_handler.call_sheet("CodInClub Student Information_Till_Oct_2020", "Copy of Processed_Data")
         if Output_sheet != 'WorksheetNotFound':
@@ -203,4 +210,4 @@ if __name__ == "__main__":
             logger.info(" Sheet Updated Successfully...!!!") if (output == True) else logger.error(
                 " Something went wrong while Updating sheet ")
 
-    # sheet_handler.Update_cell_value(Output_sheet, final_df, 'Timestamp','Final University Name')
+    
