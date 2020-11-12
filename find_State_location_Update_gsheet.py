@@ -1,5 +1,6 @@
 import pandas as pd
 import requests
+from datetime import datetime
 from lxml import html
 import re
 import logger_hander
@@ -34,8 +35,11 @@ class Find_State_Location:
         PermanentLocation_list = []
         Date_List = []
         Timestamp_list = []
+        start_date = datetime.strptime(start_date, '%m/%d/%Y').date()
+        end_date = datetime.strptime(end_date,'%m/%d/%Y').date()
         for records in list_of_records:
-            if (records.get('Timestamp').split(' ')[0] >= start_date) & (records.get('Timestamp').split(' ')[0] <= end_date):
+            timestamp_date = datetime.strptime(records.get('Timestamp').split(' ')[0],'%m/%d/%Y').date()
+            if (timestamp_date >= start_date) & (timestamp_date <= end_date):
                 Timestamp_list.append(records.get('Timestamp'))
                 Date_List.append(records.get('Timestamp').split(' ')[0])
                 Email_id_list.append(records.get('Email Address'))
@@ -59,7 +63,7 @@ class Find_State_Location:
             Timestamp_list, Date_List, Email_id_list, Name_list, MobileNumber_list, University_list, FinalUniversity_list, CurrentLocation_list, PermanentLocation_list = self.fetch_Data_From_Sheet(sheet, start_date, end_date)
             for itr, final_uni in enumerate(FinalUniversity_list):
                 final_uni = final_uni.lower()
-                if ('na' in final_uni) or ('no' in final_uni) or ('nill' in final_uni) or ('n/a' in final_uni):
+                if ('na' in final_uni) or ('no' in final_uni) or ('nill' in final_uni) or ('n/a' in final_uni) or ('yes' in final_uni):
                     FinalUniversity_list[itr] = ''
                 if len(FinalUniversity_list[itr]) != 0:
                     University_list[itr] = final_uni
@@ -80,9 +84,10 @@ class Find_State_Location:
         return "State_not_found"
 
     def preProcess_Test_Location(self,test_df,column_name):
-        test_df[column_name] = test_df[column_name].str.lower()
-        test_df[column_name] = test_df[column_name].str.replace('[#,@,&,(,),.,/,;]', ' ').dropna()
-        test_df[column_name] = test_df[column_name].str.replace(',', ' ')
+        if len(test_df[column_name])>0:
+            test_df[column_name] = test_df[column_name].str.lower()
+            test_df[column_name] = test_df[column_name].str.replace('[#,@,&,(,),.,/,;,-]', ' ').dropna()
+            test_df[column_name] = test_df[column_name].str.replace(',', ' ')
 
     def get_State_Name_From_Test_Location(self,test_location):
         state_loc_list = []
@@ -161,8 +166,8 @@ class Find_State_Location:
         return final_list
 
     def Main_Controller(self):
-        start_date = '10/30/2020'
-        end_date = '10/31/2020'
+        start_date = '10/2/2020'
+        end_date = '11/2/2020'
         Timestamp_list, Date_List, Email_id_list, Name_list, MobileNumber_list, University_list, CurrentLocation_list, PermanentLocation_list = \
             Find_State_Obj.convert_Final_University(sheet, start_date, end_date)
         dict = {'Timestamp': Timestamp_list,
@@ -204,10 +209,9 @@ if __name__ == "__main__":
     if sheet != 'WorksheetNotFound':
         final_df = Find_State_Obj.Main_Controller()
         df_list_value = final_df.values.tolist()
-        Output_sheet = sheet_handler.call_sheet("CodInClub Student Information_Till_Oct_2020", "Copy of Processed_Data")
+        Output_sheet = sheet_handler.call_sheet("CodInClub Student Information_Till_Oct_2020", "Copy of Processed_Data 1")
         if Output_sheet != 'WorksheetNotFound':
             output = sheet_handler.save_output_into_sheet(Output_sheet, df_list_value)
-            logger.info(" Sheet Updated Successfully...!!!") if (output == True) else logger.error(
-                " Something went wrong while Updating sheet ")
+            logger.info(" Sheet Updated Successfully...!!!") if (output == True) else logger.error(" Something went wrong while Updating sheet ")
 
-    
+
