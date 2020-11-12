@@ -50,7 +50,7 @@ class Google_sheet_handler:
         try:
             for row in df_list:
                 worksheet.append_row(row)
-            logger.info("Output response of Rasa has been appended Successfully..!")
+            logger.info("Output response has been appended Successfully..!")
             return True
         except Exception as e:
             excepName = type(e).__name__
