@@ -9,12 +9,29 @@ from google_sheet_handler import Google_sheet_handler
 class Find_State_Location:
 
     def __init__(self):
+        """
+            initialize Global Location Dictionary
+        """
         self.Global_Dict = {}
         self.Global_Dict_keys_lower = {}
         self.Global_Dict_path = 'dataset/Area_Location.csv'
         self.generate_Gobal_Dict()
 
+    def preProcess_Columns(self, Dataframe, column_name):
+        """
+            This function will preprocess dataframe to generate global Dictionary
+            :param: Dataframe: Dictionary value Dataframe, column_name: column_name of Dataframe
+            :return: state column name & their value
+        """
+        Dataframe[column_name] = Dataframe[column_name].str.lower()
+        State_Key_Name = column_name.split('_SUB-DISTRICT')[0]
+        State_Key_Value = Dataframe[column_name].dropna().unique().tolist()
+        return State_Key_Name, State_Key_Value
+
     def generate_Gobal_Dict(self):
+        """
+            This function will Generate Global Dictionary required for finding State
+        """
         df = pd.read_csv(self.Global_Dict_path)
         for col in df.columns:
             State_Key_Name, State_Key_Value = self.preProcess_Columns(df, col)
@@ -25,6 +42,11 @@ class Find_State_Location:
         logger.info(" Global Dictionary got Created...!")
 
     def fetch_Data_From_Sheet(self, google_sheet, start_date, end_date):
+        """
+            This function will Fetch data of specific date from google sheet & return into list.
+            :param: google_sheet: Original google_sheet, start_date: date, end_date: date
+            :return: fetched data columns in list
+        """
         list_of_records = google_sheet.get_all_records()
         Email_id_list = []
         Name_list = []
@@ -53,9 +75,19 @@ class Find_State_Location:
         return Timestamp_list, Date_List, Email_id_list, Name_list, MobileNumber_list, University_list, FinalUniversity_list, CurrentLocation_list, PermanentLocation_list
 
     def check_Cell_Name_Valid_or_Not(self, sheet, List_cell_name):
+        """
+            This function will find column name is right or wrong
+            :param: sheet: google sheet instance, List_cell_name: list of cell name
+            :return: True or False
+        """
         return Google_sheet_handler.find_cell(self, sheet, List_cell_name)
 
     def convert_Final_University(self, sheet,start_date,end_date):
+        """
+            This function will call Fetch data() and convert UG & PG to final university list
+            :param: sheet: google sheet instance, start_date: date, end_date: date
+            :return: list of fetched records
+        """
         List_of_cell_name = ['Timestamp', 'Email Address', 'Name', 'Mobile Number', 'University','College and University','Your current location?','Permanent Residence Location']
 
         flag = self.check_Cell_Name_Valid_or_Not(sheet, List_of_cell_name)
@@ -70,13 +102,12 @@ class Find_State_Location:
 
             return Timestamp_list, Date_List, Email_id_list, Name_list, MobileNumber_list, University_list, CurrentLocation_list, PermanentLocation_list
 
-    def preProcess_Columns(self, Dataframe, column_name):
-        Dataframe[column_name] = Dataframe[column_name].str.lower()
-        State_Key_Name = column_name.split('_SUB-DISTRICT')[0]
-        State_Key_Value = Dataframe[column_name].dropna().unique().tolist()
-        return State_Key_Name, State_Key_Value
-
     def get_State_Name_From_Dict(self,Search_State_name):
+        """
+            This function will compare search value with Dictionary value & return State name
+            :param: Search_State_name: search value
+            :return: State name key or "State_not_found"
+        """
         for State_name_key, State_name_values in self.Global_Dict.items():
             for State_list_value in State_name_values:
                 if Search_State_name == State_list_value:
@@ -84,12 +115,22 @@ class Find_State_Location:
         return "State_not_found"
 
     def preProcess_Test_Location(self,test_df,column_name):
+        """
+            This function will remove special symbols & convert test df column into lower_Case
+            :param: test_df: dataframe name of testing, column_name: column_name of that testing dataframe
+            :return: cleaned dataframe
+        """
         if len(test_df[column_name])>0:
             test_df[column_name] = test_df[column_name].str.lower()
             test_df[column_name] = test_df[column_name].str.replace('[#,@,&,(,),.,/,;,-]', ' ').dropna()
             test_df[column_name] = test_df[column_name].str.replace(',', ' ')
 
     def get_State_Name_From_Test_Location(self,test_location):
+        """
+            This function will split address into each word and find their respective state name using Dict
+            :param: test_location: test Current Addr/ Permanant Addr
+            :return: State name for each word
+        """
         state_loc_list = []
         test_location = str(test_location).strip()
         if test_location in self.Global_Dict_keys_lower:
@@ -103,6 +144,11 @@ class Find_State_Location:
         return ' '.join(state_loc_list)
 
     def find_State_From_Address(self,test_location_df, test_column_name):
+        """
+            This function is main controller to find State names from current/ Permenent addr
+            :param: test_location_df: dataframe of location, test_column_name: column name of df (test Current Addr/ Permanant Addr)
+            :return: dataframe , column_name
+        """
         count = 0
         state_name_list = []
         State_df = []
@@ -131,6 +177,11 @@ class Find_State_Location:
         return State_df, test_column_name
 
     def find_Univerity_State(self,final_university_name_list):
+        """
+            This function is main controller to find State names from University name (Scrapper code using buetifulsoup)
+            :param: final_university_name_list: Test University name in list
+            :return: list of state name of tested university
+        """
         final_list =[]
         for Uni_vals in final_university_name_list:
             if str(Uni_vals) != 'nan':
@@ -166,7 +217,12 @@ class Find_State_Location:
         return final_list
 
     def Main_Controller(self):
-        start_date = '10/2/2020'
+        """
+            This function is main controller to find State names, it calls Location logic as well as University logic
+            :param:
+            :return: final_dataframe which save back to google sheet
+        """
+        start_date = '11/1/2020'
         end_date = '11/2/2020'
         Timestamp_list, Date_List, Email_id_list, Name_list, MobileNumber_list, University_list, CurrentLocation_list, PermanentLocation_list = \
             Find_State_Obj.convert_Final_University(sheet, start_date, end_date)
@@ -202,14 +258,20 @@ class Find_State_Location:
         return final_dataframe
 
 if __name__ == "__main__":
+
+    # Initialize instances
     sheet_handler = Google_sheet_handler()
     logger = logger_hander.set_logger()
     Find_State_Obj = Find_State_Location()
+
+    # call google sheet which raw data present
     sheet = sheet_handler.call_sheet("CodInClub Student Information_Till_Oct_2020", "Learners_Data")
     if sheet != 'WorksheetNotFound':
         final_df = Find_State_Obj.Main_Controller()
         df_list_value = final_df.values.tolist()
-        Output_sheet = sheet_handler.call_sheet("CodInClub Student Information_Till_Oct_2020", "Copy of Processed_Data 1")
+
+        # call output sheet which result will be stored back
+        Output_sheet = sheet_handler.call_sheet("CodInClub Student Information_Till_Oct_2020", "Copy_of_Processed_Data_1")
         if Output_sheet != 'WorksheetNotFound':
             output = sheet_handler.save_output_into_sheet(Output_sheet, df_list_value)
             logger.info(" Sheet Updated Successfully...!!!") if (output == True) else logger.error(" Something went wrong while Updating sheet ")
