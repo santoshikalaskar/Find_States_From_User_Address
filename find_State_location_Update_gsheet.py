@@ -102,16 +102,16 @@ class Find_State_Location:
 
             return Timestamp_list, Date_List, Email_id_list, Name_list, MobileNumber_list, University_list, CurrentLocation_list, PermanentLocation_list
 
-    def get_State_Name_From_Dict(self,Search_State_name):
+    def get_State_Name_From_Dict(self,search_State_name):
         """
             This function will compare search value with Dictionary value & return State name
-            :param: Search_State_name: search value
+            :param: search_State_name: search value
             :return: State name key or "State_not_found"
         """
-        for State_name_key, State_name_values in self.Global_Dict.items():
-            for State_list_value in State_name_values:
-                if Search_State_name == State_list_value:
-                    return State_name_key
+        for state_name_key, state_name_values in self.Global_Dict.items():
+            for state_list_value in state_name_values:
+                if search_State_name == state_list_value:
+                    return state_name_key
         return "State_not_found"
 
     def preProcess_Test_Location(self,test_df,column_name):
@@ -183,29 +183,29 @@ class Find_State_Location:
             :return: list of state name of tested university
         """
         final_list =[]
-        for Uni_vals in final_university_name_list:
-            if str(Uni_vals) != 'nan':
-                page = requests.get("https://www.google.com/search?q=" + str(Uni_vals))
+        for uni_vals in final_university_name_list:
+            if str(uni_vals) != 'nan':
+                page = requests.get("https://www.google.com/search?q=" + str(uni_vals))
                 tree = html.fromstring(page.content)
-                State_location = tree.xpath("//div[contains(@class,'BNeawe tAd8D AP7Wnd')]/text()")
+                state_location = tree.xpath("//div[contains(@class,'BNeawe tAd8D AP7Wnd')]/text()")
                 try:
-                    State_location = State_location.replace("\n", "")
+                    state_location = state_location.replace("\n", "")
                 except:
-                    State_location = tree.xpath("//span[contains(@class,'BNeawe tAd8D AP7Wnd')]/text()")
+                    state_location = tree.xpath("//span[contains(@class,'BNeawe tAd8D AP7Wnd')]/text()")
                 try:
-                    State_location = State_location[0]
+                    state_location = state_location[0]
                 except:
-                    State_location = State_location
+                    state_location = state_location
                 try:
                     string_check = re.compile('[,]')
-                    if (string_check.search(State_location) == None):
-                        if re.search('in', State_location):
-                            State = State_location.split('in')[-1]
+                    if (string_check.search(state_location) == None):
+                        if re.search('in', state_location):
+                            State = state_location.split('in')[-1]
                             State = State.rsplit(' ', 1)[0]
                         else:
-                            State = State_location.rsplit(' ', 1)[0]
+                            State = state_location.rsplit(' ', 1)[0]
                     else:
-                        State = State_location.split(',')[-1]
+                        State = state_location.split(',')[-1]
                         State = State.rsplit(' ', 1)[0]
 
                     final_list.append(State.strip())
