@@ -187,11 +187,10 @@ class Find_State_Location:
             if str(uni_vals) != 'nan':
                 page = requests.get("https://www.google.com/search?q=" + str(uni_vals))
                 tree = html.fromstring(page.content)
-                state_location = tree.xpath("//div[contains(@class,'BNeawe tAd8D AP7Wnd')]/text()")
                 try:
-                    state_location = state_location.replace("\n", "")
+                    state_location = tree.xpath("//div[contains(@class,'BNeawe tAd8D AP7Wnd')]/text()").replace("\n","")
                 except:
-                    state_location = tree.xpath("//span[contains(@class,'BNeawe tAd8D AP7Wnd')]/text()")
+                    state_location = tree.xpath("//div[contains(@class,'BNeawe tAd8D AP7Wnd')]/text()")
                 try:
                     state_location = state_location[0]
                 except:
@@ -199,15 +198,13 @@ class Find_State_Location:
                 try:
                     string_check = re.compile('[,]')
                     if (string_check.search(state_location) == None):
-                        if re.search('in', state_location):
-                            State = state_location.split('in')[-1]
-                            State = State.rsplit(' ', 1)[0]
+                        if re.search('in', str(state_location).strip()):
+                            State = state_location.split('in')[-1].strip()
                         else:
-                            State = state_location.rsplit(' ', 1)[0]
+                            if 'day ago' in state_location or 'Times Now' in state_location:
+                                State = 'State_not_found'
                     else:
                         State = state_location.split(',')[-1]
-                        State = State.rsplit(' ', 1)[0]
-
                     final_list.append(State.strip())
                 except:
                     State = "State_not_found"
